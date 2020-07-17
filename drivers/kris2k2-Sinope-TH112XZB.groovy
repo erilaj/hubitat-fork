@@ -354,15 +354,28 @@ def eco() {
 
 def deviceNotification(text) {
     log.info "deviceNotification(${text})"
-    double outdoorTemp = text.toDouble()
     def cmds = []
+    if(text.contains("display")){
+        if(text == "displayOn"){             
+            cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on 
+             // Submit zigbee commands    
+            sendZigbeeCommands(cmds)
+        }
+        else if(text == "displayOff"){
+            cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightnes to ambient lighting
+             // Submit zigbee commands    
+            sendZigbeeCommands(cmds)
+        }       
+    }else{     
+        double outdoorTemp = text.toDouble()
+        //def cmds = []
 
-    if (prefDisplayOutdoorTemp) {
-        log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
+        if (prefDisplayOutdoorTemp) {
+            log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
     
-        //the value sent to the thermostat must be in C
-        if (getTemperatureScale() == 'F') {    
-            outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
+            //the value sent to the thermostat must be in C
+            if (getTemperatureScale() == 'F') {    
+                outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
         }        
         
         int outdoorTempDevice = outdoorTemp*100
@@ -371,16 +384,11 @@ def deviceNotification(text) {
     
         // Submit zigbee commands    
         sendZigbeeCommands(cmds)
-    } else {
-        log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
-    }
+        } else {
+            log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
+        }
+   }
 }
-def displayBackLight(){
-    log.info "enableDisplayBackLight(${value})"
-}
-    
-
-
 
 //-- Private functions -----------------------------------------------------------------------------------
 private void sendZigbeeCommands(cmds) {
