@@ -375,6 +375,10 @@ def deviceNotification(text) {
         log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
     }
 }
+def displayBackLight(){
+    log.info "enableDisplayBackLight(${value})"
+}
+    
 
 
 
