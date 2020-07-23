@@ -38,7 +38,7 @@ metadata {
         preferences {
             input name: "prefDisplayOutdoorTemp", type: "bool", title: "Enable display of outdoor temperature", defaultValue: true
             input name: "prefDisplayClock", type: "bool", title: "Enable display of clock", defaultValue: true
-            input name: "prefDisplayBacklight", type: "bool", title: "Enable display backlight", defaultValue: true
+            input name: "prefBacklightMode", type: "enum", title: "Backlight Mode", multiple: false, options: [[1:"Always ON"],[2:"On Demand"], [3:"By Notification"]], defaultValue: 1, submitOnChange:true
             input name: "prefKeyLock", type: "bool", title: "Enable keylock", defaultValue: false
         }        
 
@@ -154,7 +154,6 @@ private createCustomMap(descMap){
 
 def refresh() {
     log.info "refresh()"
-    
     def cmds = []    
     cmds += zigbee.readAttribute(0x0201, 0x0000) //Read Local Temperature
     cmds += zigbee.readAttribute(0x0201, 0x0008) //Read PI Heating State  
@@ -188,7 +187,6 @@ def configure(){
     cmds += zigbee.configureReporting(0x0201, 0x0012, 0x0029, 15, 302, 40)     //occupied heating setpoint    
     cmds += zigbee.configureReporting(0x0204, 0x0000, 0x30, 1, 0)           //Attribute ID 0x0000 = temperature display mode, Data Type: 8 bits enum
     cmds += zigbee.configureReporting(0x0204, 0x0001, 0x30, 1, 0)           //Attribute ID 0x0001 = keypad lockout, Data Type: 8 bits enum
-   //cmds += zigbee.configureReporting(0x0B04, 0x050B, 0x29, 60, 599, 0x64)  //Thermostat power draw
     cmds += zigbee.configureReporting(0x0B04, 0x050B, DataType.INT16, 30, 599, 0x64) //Thermostat power draw
     
     // Configure displayed scale
@@ -213,12 +211,17 @@ def configure(){
     }     
         
     // Configure Screen Brightness
-    if(prefDisplayBacklight){
-        cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on       
-    } else {
-        cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightnes to ambient lighting
+    //if(prefDisplayBacklight){
+    //    cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on       
+    //} else {
+    //   cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightnes to ambient lighting
+    //}
+    log.info "prefBacklightMode : ${prefBacklightMode}"
+    if(prefBacklightMode == "1"){
+         cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on
+    }else if(prefBacklightMode == "2"){
+        cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightness to ambient lighting
     }
-    
     // Configure Clock Display
     if (prefDisplayClock) { 
         //To refresh the time        
@@ -228,7 +231,7 @@ def configure(){
     } else {
         cmds += zigbee.writeAttribute(0xFF01, 0x0020, 0x23, -1) // set clock to -1 means hide the clock
     }
-
+   
     // Submit zigbee commands
     sendZigbeeCommands(cmds)
     
@@ -354,15 +357,18 @@ def eco() {
 
 def deviceNotification(text) {
     log.info "deviceNotification(${text})"
+    log.info "prefBacklightMode(${prefBacklightMode})"
     def cmds = []
-    if(text.contains("display")){
+    if(prefBacklightMode == "3" && text.contains("display")){
         if(text == "displayOn"){             
             cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on 
+            prefDisplayBacklight = true 
              // Submit zigbee commands    
             sendZigbeeCommands(cmds)
         }
         else if(text == "displayOff"){
             cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightnes to ambient lighting
+            prefDisplayBacklight = false
              // Submit zigbee commands    
             sendZigbeeCommands(cmds)
         }       
@@ -389,6 +395,8 @@ def deviceNotification(text) {
         }
    }
 }
+   
+
 
 //-- Private functions -----------------------------------------------------------------------------------
 private void sendZigbeeCommands(cmds) {
