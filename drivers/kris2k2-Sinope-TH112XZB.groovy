@@ -38,7 +38,7 @@ metadata {
         preferences {
             input name: "prefDisplayOutdoorTemp", type: "bool", title: "Enable display of outdoor temperature", defaultValue: true
             input name: "prefDisplayClock", type: "bool", title: "Enable display of clock", defaultValue: true
-            input name: "prefBacklightMode", type: "enum", title: "Backlight Mode", multiple: false, options: [[1:"Always ON"],[2:"On Demand"], [3:"By Notification"]], defaultValue: 1, submitOnChange:true
+            input name: "prefBacklightMode", type: "enum", title: "Backlight Mode", multiple: false, options: [["1":"Always ON"],["2":"On Demand"], ["3":"By Notification"]], defaultValue: "1", submitOnChange:true
             input name: "prefKeyLock", type: "bool", title: "Enable keylock", defaultValue: false
         }        
 
@@ -219,8 +219,10 @@ def configure(){
     log.info "prefBacklightMode : ${prefBacklightMode}"
     if(prefBacklightMode == "1"){
          cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on
+        log.info "cmd backlight On send"
     }else if(prefBacklightMode == "2"){
         cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightness to ambient lighting
+        log.info "cmd backlight Off send"
     }
     // Configure Clock Display
     if (prefDisplayClock) { 
@@ -231,7 +233,7 @@ def configure(){
     } else {
         cmds += zigbee.writeAttribute(0xFF01, 0x0020, 0x23, -1) // set clock to -1 means hide the clock
     }
-   
+    //log.info "${cmds}"
     // Submit zigbee commands
     sendZigbeeCommands(cmds)
     
@@ -362,13 +364,11 @@ def deviceNotification(text) {
     if(prefBacklightMode == "3" && text.contains("display")){
         if(text == "displayOn"){             
             cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on 
-            prefDisplayBacklight = true 
              // Submit zigbee commands    
             sendZigbeeCommands(cmds)
         }
         else if(text == "displayOff"){
             cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightnes to ambient lighting
-            prefDisplayBacklight = false
              // Submit zigbee commands    
             sendZigbeeCommands(cmds)
         }       
@@ -377,8 +377,7 @@ def deviceNotification(text) {
         //def cmds = []
 
         if (prefDisplayOutdoorTemp) {
-            log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
-    
+            log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"   
             //the value sent to the thermostat must be in C
             if (getTemperatureScale() == 'F') {    
                 outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
