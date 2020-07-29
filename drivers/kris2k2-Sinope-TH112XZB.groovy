@@ -22,7 +22,7 @@
 
 metadata {
 
-    definition(name: "Sinope TH112XZB Thermostat Test", namespace: "kris2k2", author: "Kristopher Lalletti") {
+    definition(name: "Sinope TH112XZB Thermostat", namespace: "kris2k2", author: "Kristopher Lalletti") {
         // https://docs.hubitat.com/index.php?title=Driver_Capability_List#Thermostat
         //
         capability "Configuration"
