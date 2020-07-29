@@ -17,11 +17,12 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *  
  */
 
 metadata {
 
-    definition(name: "Sinope TH112XZB Thermostat", namespace: "kris2k2", author: "Kristopher Lalletti") {
+    definition(name: "Sinope TH112XZB Thermostat Test", namespace: "kris2k2", author: "Kristopher Lalletti") {
         // https://docs.hubitat.com/index.php?title=Driver_Capability_List#Thermostat
         //
         capability "Configuration"
@@ -34,12 +35,15 @@ metadata {
         capability "Notification"
         
         command "eco"
+        command "displayOn"
+        command "displayOff"
         
         preferences {
             input name: "prefDisplayOutdoorTemp", type: "bool", title: "Enable display of outdoor temperature", defaultValue: true
             input name: "prefDisplayClock", type: "bool", title: "Enable display of clock", defaultValue: true
-            input name: "prefBacklightMode", type: "enum", title: "Backlight Mode", multiple: false, options: [["1":"Always ON"],["2":"On Demand"], ["3":"By Notification"]], defaultValue: "1", submitOnChange:true
+            input name: "prefBacklightMode", type: "enum", title: "Backlight Mode", multiple: false, options: [["1":"Always ON"],["2":"On Demand"], ["3":"Custom Command"]], defaultValue: "1", submitOnChange:true
             input name: "prefKeyLock", type: "bool", title: "Enable keylock", defaultValue: false
+            input name: "prefLogging", type: "bool", title: "Enable logging", defaultValue: false
         }        
 
         fingerprint profileId: "0104", deviceId: "119C", manufacturer: "Sinope Technologies", model: "TH1123ZB", deviceJoinName: "TH1123ZB"
@@ -50,27 +54,27 @@ metadata {
 //-- Installation ----------------------------------------------------------------------------------------
 
 def installed() {
-    log.info "installed() : scheduling configure() every 3 hours"
+    if(prefLogging) log.info "installed() : scheduling configure() every 3 hours"
     runEvery3Hours(configure)
 }
 
 def updated() {
-    log.info "updated() : re-scheduling configure() every 3 hours, and once within a minute."
+    if(prefLogging) log.info "updated() : re-scheduling configure() every 3 hours, and once within a minute."
     try {
         unschedule()
     } catch (e) {
-        log.info "updated(): Error unschedule() - ${errMsg}"
+        if(prefLogging) log.error "updated(): Error unschedule() - ${errMsg}"
     }
     runIn(1,configure)
     runEvery3Hours(configure)    
 }
 
 def uninstalled() {
-    log.info "uninstalled() : unscheduling configure()"
+    if(prefLogging) log.info "uninstalled() : unscheduling configure()"
     try {    
         unschedule()
     } catch (errMsg) {
-        log.info "uninstalled(): Error unschedule() - ${errMsg}"
+        if(prefLogging) log.error "uninstalled(): Error unschedule() - ${errMsg}"
     }
 }
 
@@ -114,7 +118,7 @@ private createCustomMap(descMap){
         } else if (descMap.cluster == "0201" && descMap.attrId == "0012") {
             map.name = "heatingSetpoint"
             map.value = getTemperature(descMap.value)
-            log.info "heatingSetpoint: ${map.value}"
+            if(prefLogging) log.info "heatingSetpoint: ${map.value}"
             
         } else if (descMap.cluster == "0201" && descMap.attrId == "0015") {
             map.name = "heatingSetpointRangeLow"
@@ -153,7 +157,7 @@ private createCustomMap(descMap){
 //-- Capabilities
 
 def refresh() {
-    log.info "refresh()"
+    if(prefLogging) log.info "refresh()"
     def cmds = []    
     cmds += zigbee.readAttribute(0x0201, 0x0000) //Read Local Temperature
     cmds += zigbee.readAttribute(0x0201, 0x0008) //Read PI Heating State  
@@ -171,7 +175,7 @@ def refresh() {
 }   
 
 def configure(){    
-    log.info "configure()"
+    if(prefLogging) log.info "configure()"
         
     // Set unused default values
     sendEvent(name: "coolingSetpoint", value:getTemperature("0BB8")) // 0x0BB8 =  30 Celsius
@@ -216,13 +220,10 @@ def configure(){
     //} else {
     //   cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightnes to ambient lighting
     //}
-    log.info "prefBacklightMode : ${prefBacklightMode}"
     if(prefBacklightMode == "1"){
          cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on
-        log.info "cmd backlight On send"
     }else if(prefBacklightMode == "2"){
         cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightness to ambient lighting
-        log.info "cmd backlight Off send"
     }
     // Configure Clock Display
     if (prefDisplayClock) { 
@@ -233,47 +234,43 @@ def configure(){
     } else {
         cmds += zigbee.writeAttribute(0xFF01, 0x0020, 0x23, -1) // set clock to -1 means hide the clock
     }
-    //log.info "${cmds}"
     // Submit zigbee commands
-    sendZigbeeCommands(cmds)
-    
-    
+    sendZigbeeCommands(cmds)    
     // Submit refresh
-    refresh()
-    
+    refresh()   
     // Return
     return
 }
 
 def auto() {
-    log.info "auto(): mode is not available for this device. => Defaulting to heat mode instead."
+    if(prefLogging) log.info "auto(): mode is not available for this device. => Defaulting to heat mode instead."
     heat()
 }
 
 def cool() {
-    log.info "cool(): mode is not available for this device. => Defaulting to eco mode instead."
+    if(prefLogging) log.info "cool(): mode is not available for this device. => Defaulting to eco mode instead."
     eco()
 }
 
 def emergencyHeat() {
-    log.info "emergencyHeat(): mode is not available for this device. => Defaulting to heat mode instead."
+    if(prefLogging) log.info "emergencyHeat(): mode is not available for this device. => Defaulting to heat mode instead."
     heat()
 }
 
 def fanAuto() {
-    log.info "fanAuto(): mode is not available for this device"
+    if(prefLogging) log.info "fanAuto(): mode is not available for this device"
 }
 
 def fanCirculate() {
-    log.info "fanCirculate(): mode is not available for this device"
+    if(prefLogging) log.info "fanCirculate(): mode is not available for this device"
 }
 
 def fanOn() {
-    log.info "fanOn(): mode is not available for this device"
+    if(prefLogging) log.info "fanOn(): mode is not available for this device"
 }
 
 def heat() {
-    log.info "heat(): mode set"
+    if(prefLogging) log.info "heat(): mode set"
     
     def cmds = []
     cmds += zigbee.writeAttribute(0x0201, 0x001C, 0x30, 04, [:], 1000) // MODE
@@ -284,7 +281,7 @@ def heat() {
 }
 
 def off() {
-    log.info "off(): mode set"
+    if(prefLogging) log.info "off(): mode set"
     
     def cmds = []
     cmds += zigbee.writeAttribute(0x0201, 0x001C, 0x30, 0)
@@ -294,17 +291,17 @@ def off() {
 }
 
 def setCoolingSetpoint(degrees) {
-    log.info "setCoolingSetpoint(${degrees}): is not available for this device"
+    if(prefLogging) log.info "setCoolingSetpoint(${degrees}): is not available for this device"
 }
 
 def setHeatingSetpoint(preciseDegrees) {
-    log.info "setHeatingSetpoint(${preciseDegrees})"
+    if(prefLogging) log.info "setHeatingSetpoint(${preciseDegrees})"
     if (preciseDegrees != null) {
         def temperatureScale = getTemperatureScale()
         def degrees = new BigDecimal(preciseDegrees).setScale(1, BigDecimal.ROUND_HALF_UP)
         def cmds = []        
         
-        log.info "setHeatingSetpoint(${degrees}:${temperatureScale})"
+        if(prefLogging) log.info "setHeatingSetpoint(${degrees}:${temperatureScale})"
         
         def celsius = (temperatureScale == "C") ? degrees as Float : (fahrenheitToCelsius(degrees) as Float).round(2)
         int celsius100 = Math.round(celsius * 100)
@@ -317,15 +314,15 @@ def setHeatingSetpoint(preciseDegrees) {
 }
 
 def setSchedule(JSON_OBJECT){
-    log.info "setSchedule(JSON_OBJECT): is not available for this device"
+    if(prefLogging) log.info "setSchedule(JSON_OBJECT): is not available for this device"
 }
 
 def setThermostatFanMode(fanmode){
-    log.info "setThermostatFanMode(${fanmode}): is not available for this device"
+    if(prefLogging) log.info "setThermostatFanMode(${fanmode}): is not available for this device"
 }
 
 def setThermostatMode(String value) {
-    log.info "setThermostatMode(${value})"
+    if(prefLogging) log.info "setThermostatMode(${value})"
     def currentMode = device.currentState("thermostatMode")?.value
     def lastTriedMode = state.lastTriedMode ?: currentMode ?: "heat"
     def modeNumber;
@@ -347,7 +344,7 @@ def setThermostatMode(String value) {
 }
 
 def eco() {
-    log.info "eco()"
+    if(prefLogging) log.info "eco()"
     
     def cmds = []
     cmds += zigbee.writeAttribute(0x0201, 0x001C, 0x30, 04, [:], 1000) // MODE
@@ -358,26 +355,13 @@ def eco() {
 }
 
 def deviceNotification(text) {
-    log.info "deviceNotification(${text})"
-    log.info "prefBacklightMode(${prefBacklightMode})"
-    def cmds = []
-    if(prefBacklightMode == "3" && text.contains("display")){
-        if(text == "displayOn"){             
-            cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on 
-             // Submit zigbee commands    
-            sendZigbeeCommands(cmds)
-        }
-        else if(text == "displayOff"){
-            cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightnes to ambient lighting
-             // Submit zigbee commands    
-            sendZigbeeCommands(cmds)
-        }       
-    }else{     
+   
         double outdoorTemp = text.toDouble()
-        //def cmds = []
+        def cmds = []
 
         if (prefDisplayOutdoorTemp) {
-            log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"   
+            if(prefLogging) log.info "deviceNotification() : Received outdoor weather : ${text} : ${outdoorTemp}"
+    
             //the value sent to the thermostat must be in C
             if (getTemperatureScale() == 'F') {    
                 outdoorTemp = fahrenheitToCelsius(outdoorTemp).toDouble()
@@ -390,11 +374,23 @@ def deviceNotification(text) {
         // Submit zigbee commands    
         sendZigbeeCommands(cmds)
         } else {
-            log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
+            if(prefLogging) log.info "deviceNotification() : Not setting any outdoor weather, since feature is disabled."  
         }
-   }
 }
-   
+def displayOn(){
+    if(prefLogging) log.info "displayOn() command send"
+    def cmds = []
+    cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0001) // set display brigtness to explicitly on 
+    // Submit zigbee commands    
+    sendZigbeeCommands(cmds)
+}
+def displayOff(){
+    if(prefLogging) log.info "displayOff() command send"
+    def cmds = []
+     cmds += zigbee.writeAttribute(0x0201, 0x0402, 0x30, 0x0000) // set display brightnes to ambient lighting
+     // Submit zigbee commands    
+     sendZigbeeCommands(cmds)
+}
 
 
 //-- Private functions -----------------------------------------------------------------------------------
