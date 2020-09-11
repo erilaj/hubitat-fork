@@ -1,6 +1,6 @@
 /**
  *  Sinope Dimmer DM2500ZB Device Driver for Hubitat
- *  Source: 
+ *  Source: https://github.com/erilaj/hubitat/blob/master/drivers/erilaj-Sinope-DM2500ZB.groovy
  * 
  *
  *  Code derived from Sinope's SmartThing thermostat for their Zigbee protocol requirements
