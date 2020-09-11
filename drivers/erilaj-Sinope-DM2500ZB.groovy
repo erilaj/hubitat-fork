@@ -19,7 +19,7 @@
  */
 
 preferences {
-	input name:"MinimalIntensityParam", tyepe: "number", title:"Light bulb minimal intensity (1..11) (default: blank)", range:"1..11", description:"optional")
+	input name:"MinimalIntensityParam", tyepe: "number", title:"Light bulb minimal intensity (1..11) (default: blank)", range:"1..11", required: false
     //input("OnLedIntensityParam", "number", title:"Indicator light intensity when ON (0..100)", range:"0..100", description:"optional")
     input name: "OnLedIntensityParam", type: "number", title:"Indicator light intensity when ON (0..100)", range:"0..100", defaultValue: 50, required: true
     input name: "OffLedIntensityParam", type: "number", title:"Indicator light intensity when OFF (0..100)", range:"0..100", defaultValue: 50, required: true
