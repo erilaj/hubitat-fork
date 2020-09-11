@@ -3,7 +3,7 @@
  *  Source: https://github.com/erilaj/hubitat/blob/master/drivers/erilaj-Sinope-DM2500ZB.groovy
  * 
  *
- *  Code derived from Sinope's SmartThing thermostat for their Zigbee protocol requirements
+ *  Code derived from Sinope's SmartThing dimmer DM2500ZB
  *  Source: https://raw.githubusercontent.com/Sinopetech/Smartthings/master/Sinope%20Technologies%20DM2500ZB%20V.1.0.0.txt
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
